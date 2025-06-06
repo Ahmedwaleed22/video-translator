@@ -13,9 +13,9 @@ class GenerateVideo:
     """Get font configuration based on language"""
     font_configs = {
       'ar': {  # Arabic
-        'font_name': 'SF Arabic',
-        'font_size': 18,
-        'fontsdir': None  # Use system font
+        'font_name': 'Noto Sans Arabic',
+        'font_size': 24,
+        'fontsdir': os.path.abspath('fonts')  # Use system font
       },
       'en': {  # English
         'font_name': 'SF Pro Text',
