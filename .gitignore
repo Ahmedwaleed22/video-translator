@@ -2,7 +2,7 @@ env/
 .env
 demo/
 .DS_Store
-output.mp4
 temp/*
 MULTI_LANGUAGE_USAGE.md
 core/__pycache__/*
+output/*

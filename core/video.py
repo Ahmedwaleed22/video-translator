@@ -10,7 +10,7 @@ class GenerateVideo:
         self.lang = lang
         self.title = title
         self.output_file = output_file
-        self.ass_file = "temp_subs.ass"
+        self.ass_file = f"temp/temp_subs_{self.lang}.ass"
 
     def is_rtl_language(self):
         rtl_languages = ['ar', 'he', 'fa', 'ur', 'yi', 'iw', 'ji', 'ps', 'sd']
