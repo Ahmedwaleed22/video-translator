@@ -4,7 +4,6 @@ from core.audio import Audio
 from core.export import Export
 from core.translation import Translation
 from core.video import GenerateVideo
-from core.llm import LLM
 from core.dubbed_video_generation import combine_audio_with_timing
 
 async def translate_video(video_path, video_language, target_language):
@@ -24,6 +23,7 @@ async def translate_video(video_path, video_language, target_language):
   )
   
   video_gen.generate_video()
+  video_gen.cleanup_temp_files()
 
 async def dub_video_to_en(video_path, video_language):
   audio_path = Audio().extract_audio(video_path)
@@ -55,6 +55,7 @@ async def dub_video_to_en(video_path, video_language):
   )
 
   video_gen.generate_video()
+  video_gen.cleanup_temp_files()
 
 
 def main():
