@@ -1,122 +1,108 @@
 import ffmpeg
 import os
+import pysubs2
+import re
 
 class GenerateVideo:
-  def __init__(self, video, subtitles, lang, title, output_file = "output.mp4"):
-    self.video = video
-    self.subtitles = subtitles
-    self.lang = lang
-    self.title = title
-    self.output_file = output_file
+    def __init__(self, video, subtitles, lang, title, output_file="output.mp4"):
+        self.video = video
+        self.subtitles = subtitles
+        self.lang = lang
+        self.title = title
+        self.output_file = output_file
+        self.ass_file = "temp_subs.ass"
 
-  def get_font_config(self):
-    """Get font configuration based on language"""
-    font_configs = {
-      'ar': {  # Arabic
-        'font_name': 'Noto Sans Arabic',
-        'font_size': 24,
-        'fontsdir': os.path.abspath('fonts')  # Use system font
-      },
-      'en': {  # English
-        'font_name': 'SF Pro Text',
-        'font_size': 16,
-        'fontsdir': None  # Use system font
-      },
-      'es': {  # Spanish
-        'font_name': 'SF Pro Text',
-        'font_size': 16,
-        'fontsdir': None
-      },
-      'fr': {  # French
-        'font_name': 'SF Pro Text',
-        'font_size': 16,
-        'fontsdir': None
-      },
-      'de': {  # German
-        'font_name': 'SF Pro Text',
-        'font_size': 16,
-        'fontsdir': None
-      },
-      'zh': {  # Chinese
-        'font_name': 'PingFang SC',
-        'font_size': 16,
-        'fontsdir': None
-      },
-      'ja': {  # Japanese
-        'font_name': 'Hiragino Sans',
-        'font_size': 16,
-        'fontsdir': None
-      },
-      'ko': {  # Korean
-        'font_name': 'Apple SD Gothic Neo',
-        'font_size': 16,
-        'fontsdir': None
-      }
-    }
-    
-    # Default to English if language not found
-    return font_configs.get(self.lang, font_configs['en'])
+    def is_rtl_language(self):
+        rtl_languages = ['ar', 'he', 'fa', 'ur', 'yi', 'iw', 'ji', 'ps', 'sd']
+        return self.lang in rtl_languages
 
-  def add_custom_font_support(self, lang_code, font_name, font_size=16, fonts_dir=None):
-    """Add support for a custom font for a specific language"""
-    # This method can be called to add support for additional languages
-    # For example: video_gen.add_custom_font_support('hi', 'Noto Sans Devanagari', 16, 'fonts/hindi')
-    pass
+    def get_font_config(self):
+        font_configs = {
+            'ar': {'font_name': 'Noto Sans Arabic', 'font_size': 24, 'fontsdir': os.path.abspath('fonts')},
+            'he': {'font_name': 'Noto Sans Hebrew', 'font_size': 20, 'fontsdir': os.path.abspath('fonts')},
+            'fa': {'font_name': 'Noto Sans Arabic', 'font_size': 22, 'fontsdir': os.path.abspath('fonts')},
+            'ur': {'font_name': 'Noto Sans Arabic', 'font_size': 22, 'fontsdir': os.path.abspath('fonts')},
+            'en': {'font_name': 'SF Pro Text', 'font_size': 16, 'fontsdir': None},
+            'es': {'font_name': 'SF Pro Text', 'font_size': 16, 'fontsdir': None},
+            'fr': {'font_name': 'SF Pro Text', 'font_size': 16, 'fontsdir': None},
+            'de': {'font_name': 'SF Pro Text', 'font_size': 16, 'fontsdir': None},
+            'zh': {'font_name': 'PingFang SC', 'font_size': 16, 'fontsdir': None},
+            'ja': {'font_name': 'Hiragino Sans', 'font_size': 16, 'fontsdir': None},
+            'ko': {'font_name': 'Apple SD Gothic Neo', 'font_size': 16, 'fontsdir': None}
+        }
+        return font_configs.get(self.lang, font_configs['en'])
 
-  def generate_video(self):
-    input_video = ffmpeg.input(self.video)
-    
-    # Get font configuration for the specified language
-    font_config = self.get_font_config()
-    
-    # Prepare subtitle filter arguments
-    subtitle_args = [
-      input_video['v'],
-      'subtitles',
-      self.subtitles
-    ]
-    
-    # Add fontsdir if specified (for custom fonts)
-    subtitle_kwargs = {}
-    if font_config['fontsdir']:
-      subtitle_kwargs['fontsdir'] = font_config['fontsdir']
-    
-    # Configure subtitle styling
-    force_style = (
-      f"FontName={font_config['font_name']},"
-      f"FontSize={font_config['font_size']},"
-      "PrimaryColour=&H00FFFFFF,"
-      "OutlineColour=&H00000000,"
-      "BorderStyle=1,"
-      "Outline=1,"
-      "Shadow=1,"
-      "Alignment=2,"
-      "MarginV=30"
-    )
-    
-    subtitle_kwargs['force_style'] = force_style
-    
-    # Burn subtitles into the video using the subtitles filter
-    video_with_subs = ffmpeg.filter(*subtitle_args, **subtitle_kwargs)
+    import re
 
-    # Create the output with burned-in subtitles
-    output_ffmpeg = ffmpeg.output(
-        video_with_subs, input_video['a'],
-        self.output_file,
-        vcodec='libx264',  # Need to re-encode video to burn in subtitles
-        acodec='copy',     # Keep audio as-is
-        metadata=f'title={self.title}'
-    )
+    def convert_srt_to_ass(self, srt_file, ass_file, font_config, is_rtl):
+        subs = pysubs2.load(srt_file, encoding="utf-8")
 
-    # If the destination file already exists, overwrite it.
-    output_ffmpeg = ffmpeg.overwrite_output(output_ffmpeg)
+        style = pysubs2.SSAStyle()
+        style.fontname = font_config['font_name']
+        style.fontsize = font_config['font_size']
+        style.primarycolor = pysubs2.Color(255, 255, 255, 0)
+        style.outlinecolor = pysubs2.Color(0, 0, 0, 0)
+        style.backcolor = pysubs2.Color(0, 0, 0, 255)
+        style.bold = False
+        style.italic = False
+        style.shadow = 1
+        style.outline = 1
+        style.marginv = 30
+        style.alignment = 2
+        style.encoding = 1
 
-    # Print the equivalent ffmpeg command we could run to perform the same action as above.
-    print(ffmpeg.compile(output_ffmpeg))
+        if is_rtl:
+            style.alignment = 2  # Bottom center
 
-    # Do it! transcode!
-    ffmpeg.run(output_ffmpeg)
+        subs.styles["Default"] = style
 
-  def cleanup_temp_files(self):
-    for i in os.listdir("temp"):
-      os.remove(f"temp/{i}")
+        # Unicode directional markers
+        LRE = "\u202A"  # Left-to-Right Embedding
+        RLE = "\u202B"  # Right-to-Left Embedding
+        PDF = "\u202C"  # Pop Directional Formatting
+
+        for line in subs:
+            if is_rtl:
+                # Wrap English substrings in LRE...PDF
+                line.text = re.sub(
+                    r'([A-Za-z0-9_\/\\\:\.\,\-\+]+)',
+                    lambda m: LRE + m.group(1) + PDF,
+                    line.text
+                )
+                # Optionally wrap whole line in RLE...PDF
+                line.text = RLE + line.text + PDF
+
+        subs.save(ass_file)
+
+    def generate_video(self):
+        font_config = self.get_font_config()
+        is_rtl = self.is_rtl_language()
+
+        self.convert_srt_to_ass(self.subtitles, self.ass_file, font_config, is_rtl)
+
+        input_video = ffmpeg.input(self.video)
+
+        subtitle_filter_args = {'fontsdir': font_config['fontsdir']} if font_config['fontsdir'] else {}
+
+        video_with_subs = ffmpeg.filter(
+            input_video['v'],
+            'subtitles',
+            self.ass_file,
+            **subtitle_filter_args
+        )
+
+        output_ffmpeg = ffmpeg.output(
+            video_with_subs, input_video['a'],
+            self.output_file,
+            vcodec='libx264',
+            acodec='copy',
+            metadata=f'title={self.title}'
+        )
+
+        output_ffmpeg = ffmpeg.overwrite_output(output_ffmpeg)
+        print(ffmpeg.compile(output_ffmpeg))
+        ffmpeg.run(output_ffmpeg)
+
+    def cleanup_temp_files(self):
+        if os.path.exists(self.ass_file):
+            os.remove(self.ass_file)

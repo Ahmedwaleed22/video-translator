@@ -1,6 +1,5 @@
 env/
 .env
-.env.*
 demo/
 .DS_Store
 output.mp4
