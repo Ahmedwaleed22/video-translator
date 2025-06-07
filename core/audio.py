@@ -5,8 +5,11 @@ import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
 import soundfile as sf
+import torchaudio as ta
+from chatterbox.tts import ChatterboxTTS
 import os
 import subprocess
+from pydub import AudioSegment
 
 class Audio:
   def extract_audio(self, video_path):
@@ -149,40 +152,74 @@ class Audio:
     return "temp/vocals.wav", "temp/instrumental.wav"
 
 # Alternative method focusing on center-channel extraction
-def separate_vocals_center_extraction(self, audio_path):
-    """Simpler approach focusing on stereo center extraction"""
-    y, sr = librosa.load(audio_path, mono=False)
+  def separate_vocals_center_extraction(self, audio_path):
+      """Simpler approach focusing on stereo center extraction"""
+      y, sr = librosa.load(audio_path, mono=False)
+      
+      if y.shape[0] == 2:  # stereo
+          # Center extraction (vocals) and sides (instruments)
+          center = (y[0] + y[1]) / 2
+          sides = (y[0] - y[1]) / 2
+          
+          # Enhance separation with spectral gating
+          S_center = librosa.stft(center)
+          S_sides = librosa.stft(sides)
+          
+          # Simple spectral gating
+          magnitude_center = np.abs(S_center)
+          magnitude_sides = np.abs(S_sides)
+          
+          # Create masks based on which channel is dominant
+          mask_vocals = magnitude_center > (magnitude_sides * 1.5)
+          mask_instruments = magnitude_sides > (magnitude_center * 0.8)
+          
+          # Apply masks
+          vocals = librosa.istft(S_center * mask_vocals)
+          instruments = librosa.istft(S_sides * mask_instruments + S_center * ~mask_vocals)
+          
+      else:  # mono - fall back to spectral method
+          vocals, instruments = self.separate_audio_from_music(audio_path)
+          return vocals, instruments
     
-    if y.shape[0] == 2:  # stereo
-        # Center extraction (vocals) and sides (instruments)
-        center = (y[0] + y[1]) / 2
-        sides = (y[0] - y[1]) / 2
-        
-        # Enhance separation with spectral gating
-        S_center = librosa.stft(center)
-        S_sides = librosa.stft(sides)
-        
-        # Simple spectral gating
-        magnitude_center = np.abs(S_center)
-        magnitude_sides = np.abs(S_sides)
-        
-        # Create masks based on which channel is dominant
-        mask_vocals = magnitude_center > (magnitude_sides * 1.5)
-        mask_instruments = magnitude_sides > (magnitude_center * 0.8)
-        
-        # Apply masks
-        vocals = librosa.istft(S_center * mask_vocals)
-        instruments = librosa.istft(S_sides * mask_instruments + S_center * ~mask_vocals)
-        
-    else:  # mono - fall back to spectral method
-        vocals, instruments = self.separate_audio_from_music(audio_path)
-        return vocals, instruments
+      # Normalize and save
+      vocals = vocals / (np.max(np.abs(vocals)) + 1e-8)
+      instruments = instruments / (np.max(np.abs(instruments)) + 1e-8)
+      
+      sf.write('temp/vocals_center.wav', vocals, sr)
+      sf.write('temp/instrumental_center.wav', instruments, sr)
+      
+      return "temp/vocals_center.wav", "temp/instrumental_center.wav"
+
+  def convert_mp3_to_wav(self, audio_path):
+    audio_path = os.path.realpath(audio_path)
+    audio = AudioSegment.from_mp3(audio_path)
+    audio.export("temp/audio.wav", format="wav")
+    return "temp/audio.wav"
+
+  def generate_translated_audio(self, audio_path, translation_text, output_path):
+    import torch
+
+    if not os.path.exists(audio_path):
+      raise FileNotFoundError(f"Audio file not found: {audio_path}")
     
-    # Normalize and save
-    vocals = vocals / (np.max(np.abs(vocals)) + 1e-8)
-    instruments = instruments / (np.max(np.abs(instruments)) + 1e-8)
+    if audio_path.endswith(".mp3"):
+      audio_path = self.convert_mp3_to_wav(audio_path)
+
+    # Monkey patch torch.load to force CPU loading
+    original_load = torch.load
+    def cpu_load(*args, **kwargs):
+        kwargs['map_location'] = torch.device('cpu')
+        return original_load(*args, **kwargs)
     
-    sf.write('temp/vocals_center.wav', vocals, sr)
-    sf.write('temp/instrumental_center.wav', instruments, sr)
+    torch.load = cpu_load
     
-    return "temp/vocals_center.wav", "temp/instrumental_center.wav"
+    try:
+        model = ChatterboxTTS.from_pretrained(device="cpu")
+        text = translation_text
+        wav = model.generate(text, audio_prompt_path=audio_path)
+        ta.save(output_path, wav, model.sr)
+
+        return output_path
+    finally:
+        # Restore original torch.load
+        torch.load = original_load

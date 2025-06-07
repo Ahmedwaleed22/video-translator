@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:03,500
+First subtitle segment
+
+2
+00:00:02,800 --> 00:00:06,200
+Second subtitle with overlap
+
+3
+00:00:05,500 --> 00:00:08,000
+Third subtitle also overlaps
+
+4
+00:00:09,000 --> 00:00:12,000
+Fourth subtitle with proper gap
+
+5
+00:00:11,500 --> 00:00:14,800
+Fifth subtitle overlaps fourth

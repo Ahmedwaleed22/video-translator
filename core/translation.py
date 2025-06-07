@@ -89,7 +89,7 @@ Return only the translated numbered list without any additional commentary:
         individual_translations.append(translation)
       return individual_translations
 
-  async def translate_srt(self, srt_path, from_language, target_language, output_path):
+  async def translate_srt(self, srt_path, from_language, target_language, output_path, output_text_path=None):
     try:
       subs = pysrt.open(srt_path)
       
@@ -117,6 +117,11 @@ Return only the translated numbered list without any additional commentary:
           sub.text = all_translations[i]
       
       subs.save(output_path, encoding='utf-8')
+
+      if output_text_path:
+        with open(output_text_path, 'w', encoding='utf-8') as f:
+          for i, sub in enumerate(subs):
+            f.write(sub.text + "\n")
       
       self.logger.info(f"Translated {len(subs)} subtitles using {(len(subtitle_texts) + batch_size - 1) // batch_size} API requests")
       
