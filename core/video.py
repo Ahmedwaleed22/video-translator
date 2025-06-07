@@ -20,7 +20,6 @@ class GenerateVideo:
     def get_font_config(self):
         font_configs = {
             'ar': {'font_name': 'Noto Sans Arabic', 'font_size': 24, 'fontsdir': os.path.abspath('fonts')},
-            'he': {'font_name': 'Noto Sans Hebrew', 'font_size': 20, 'fontsdir': os.path.abspath('fonts')},
             'fa': {'font_name': 'Noto Sans Arabic', 'font_size': 22, 'fontsdir': os.path.abspath('fonts')},
             'ur': {'font_name': 'Noto Sans Arabic', 'font_size': 22, 'fontsdir': os.path.abspath('fonts')},
             'en': {'font_name': 'SF Pro Text', 'font_size': 16, 'fontsdir': None},
