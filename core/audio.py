@@ -149,7 +149,7 @@ class Audio:
     sf.write('temp/vocals.wav', y_foreground, sr, subtype='PCM_24')
     sf.write('temp/instrumental.wav', y_background_lowpass, sr, subtype='PCM_24')
     
-    return "temp/vocals.wav", "temp/instrumental.wav"
+    return "temp/demucs_output/htdemucs/audio/vocals.wav", "temp/demucs_output/htdemucs/audio/no_vocals.wav"
 
 # Alternative method focusing on center-channel extraction
   def separate_vocals_center_extraction(self, audio_path):

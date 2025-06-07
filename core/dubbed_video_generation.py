@@ -328,8 +328,8 @@ def combine_audio_with_timing(audio_folder, srt_path, background_music_path=None
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         print(f"Successfully created: {output_path}")
-        return True
+        return output_path
     except subprocess.CalledProcessError as e:
         print(f"FFmpeg error: {e}")
         print(f"Error output: {e.stderr}")
-        return False
+        return None

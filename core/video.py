@@ -4,14 +4,15 @@ import pysubs2
 import re
 
 class GenerateVideo:
-    def __init__(self, video, subtitles, lang, title, output_file="output.mp4"):
+    def __init__(self, video, subtitles=None, lang='en', title='', audio=None, output_file="output.mp4"):
         self.video = video
         self.subtitles = subtitles
         self.lang = lang
         self.title = title
+        self.audio = audio
         self.output_file = output_file
-        self.ass_file = f"temp/temp_subs_{self.lang}.ass"
-
+        self.ass_file = f"temp/temp_subs_{self.lang}.ass" if subtitles else None
+        
     def is_rtl_language(self):
         rtl_languages = ['ar', 'he', 'fa', 'ur', 'yi', 'iw', 'ji', 'ps', 'sd']
         return self.lang in rtl_languages
@@ -31,8 +32,6 @@ class GenerateVideo:
             'ko': {'font_name': 'Apple SD Gothic Neo', 'font_size': 16, 'fontsdir': None}
         }
         return font_configs.get(self.lang, font_configs['en'])
-
-    import re
 
     def convert_srt_to_ass(self, srt_file, ass_file, font_config, is_rtl):
         subs = pysubs2.load(srt_file, encoding="utf-8")
@@ -75,28 +74,49 @@ class GenerateVideo:
         subs.save(ass_file)
 
     def generate_video(self):
-        font_config = self.get_font_config()
-        is_rtl = self.is_rtl_language()
-
-        self.convert_srt_to_ass(self.subtitles, self.ass_file, font_config, is_rtl)
-
         input_video = ffmpeg.input(self.video)
+        
+        # Handle audio input
+        if self.audio:
+            input_audio = ffmpeg.input(self.audio)
+            audio_stream = input_audio['a']
+        else:
+            audio_stream = input_video['a']
+        
+        # Handle subtitles
+        if self.subtitles:
+            font_config = self.get_font_config()
+            is_rtl = self.is_rtl_language()
+            
+            # Create temp directory if it doesn't exist
+            os.makedirs('temp', exist_ok=True)
+            
+            self.convert_srt_to_ass(self.subtitles, self.ass_file, font_config, is_rtl)
 
-        subtitle_filter_args = {'fontsdir': font_config['fontsdir']} if font_config['fontsdir'] else {}
+            subtitle_filter_args = {'fontsdir': font_config['fontsdir']} if font_config['fontsdir'] else {}
 
-        video_with_subs = ffmpeg.filter(
-            input_video['v'],
-            'subtitles',
-            self.ass_file,
-            **subtitle_filter_args
-        )
+            video_stream = ffmpeg.filter(
+                input_video['v'],
+                'subtitles',
+                self.ass_file,
+                **subtitle_filter_args
+            )
+        else:
+            video_stream = input_video['v']
+
+        # Create output with metadata if title is provided
+        output_args = {
+            'vcodec': 'libx264',
+            'acodec': 'copy'
+        }
+        
+        if self.title:
+            output_args['metadata'] = f'title={self.title}'
 
         output_ffmpeg = ffmpeg.output(
-            video_with_subs, input_video['a'],
+            video_stream, audio_stream,
             self.output_file,
-            vcodec='libx264',
-            acodec='copy',
-            metadata=f'title={self.title}'
+            **output_args
         )
 
         output_ffmpeg = ffmpeg.overwrite_output(output_ffmpeg)
@@ -104,5 +124,5 @@ class GenerateVideo:
         ffmpeg.run(output_ffmpeg)
 
     def cleanup_temp_files(self):
-        if os.path.exists(self.ass_file):
+        if self.ass_file and os.path.exists(self.ass_file):
             os.remove(self.ass_file)
