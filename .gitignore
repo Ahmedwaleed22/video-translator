@@ -7,3 +7,7 @@ MULTI_LANGUAGE_USAGE.md
 core/__pycache__/*
 output/*
 output/output_*.mp4
+# Temporary and output files
+temp/
+temp(old)/
+output/
