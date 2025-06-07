@@ -60,7 +60,7 @@ class Audio:
       if os.path.exists(instrumental_path):
         subprocess.run(["cp", instrumental_path, "temp/instrumental_demucs.wav"], check=True)
       
-      return "temp/vocals_demucs.wav", "temp/instrumental_demucs.wav"
+      return "temp/demucs_output/htdemucs/audio/vocals.wav", "temp/demucs_output/htdemucs/audio/no_vocals.wav"
       
     except subprocess.CalledProcessError as e:
       print(f"Demucs separation failed: {e}")

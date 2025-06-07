@@ -40,7 +40,7 @@ async def dub_video_to_en(video_path, video_language):
       translated_audio_path = Audio().generate_translated_audio(audio_path, line, f"temp/dubbed/translated_audio_{i}.wav")
       print(translated_audio_path)
 
-  vocals, instrumental = Audio().separate_audio_from_music(audio_path)
+  vocals, instrumental = Audio().separate_audio_with_demucs(audio_path)
 
   audio_path = combine_audio_with_timing("temp/dubbed", "temp/result_en.srt", instrumental, "temp/final_combined_audio.wav")
   print(audio_path)
@@ -60,10 +60,10 @@ async def dub_video_to_en(video_path, video_language):
 
 def main():
   # Translate video to arabic (Subtitles tr -> ar)
-  asyncio.run(translate_video("demo/tr.mp4", "tr", "ar"))
+  asyncio.run(translate_video("demo/02.mp4", "tr", "ar"))
 
   # Dub video to english (Audio tr -> en) (Only english supported for now)
-  asyncio.run(dub_video_to_en("demo/tr.mp4", "tr"))
+  asyncio.run(dub_video_to_en("demo/02.mp4", "tr"))
 
 if __name__ == "__main__":
   main()
