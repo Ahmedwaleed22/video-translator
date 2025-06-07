@@ -47,7 +47,7 @@ class GenerateVideo:
         style.italic = False
         style.shadow = 1
         style.outline = 1
-        style.marginv = 30
+        style.marginv = 10
         style.alignment = 2
         style.encoding = 1
 

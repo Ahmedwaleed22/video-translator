@@ -15,7 +15,7 @@ class Translation:
       messages = [
         {
           "role": "user",
-          "content": f"Translate the following text from {from_lang} to {to_lang}. Don't translate terms like 'Vibe Coding' or any terms like that that shouldn't be translated. Return only the translated text without any additional commentary:\n\n{text}"
+          "content": f"Translate the following text from {from_lang} to {to_lang}. Don't translate terms like 'Vibe Coding' or any terms like that that shouldn't be translated also any term or any untranslated term but them between brackets. Return only the translated text without any additional commentary:\n\n{text}"
         }
       ]
       
@@ -45,7 +45,7 @@ class Translation:
           "role": "user",
           "content": f"""Translate the following numbered list from {from_lang} to {to_lang}. 
 Return the translations in the exact same numbered format, maintaining the same numbering.
-Don't translate terms like 'Vibe Coding' or any terms like that that shouldn't be translated.
+Don't translate terms like 'Vibe Coding' or any terms like that that shouldn't be translated also any term or any untranslated term but them between brackets.
 Return only the translated numbered list without any additional commentary:
 
 {batch_text}"""
